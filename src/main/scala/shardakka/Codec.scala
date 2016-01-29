@@ -18,7 +18,7 @@ trait Decoder[A] {
   def fromBytes(bytes: ByteString): A
 }
 
-final object StringCodec extends Codec[String] {
+object StringCodec extends Codec[String] {
   override def toString(bytes: ByteString): String = bytes.toStringUtf8
 
   override def toBytes(value: String): ByteString = ByteString.copyFromUtf8(value)
