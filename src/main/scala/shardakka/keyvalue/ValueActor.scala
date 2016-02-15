@@ -4,7 +4,7 @@ import java.util.zip.CRC32
 
 import akka.actor._
 import akka.cluster.sharding.{ClusterShardingSettings, ShardRegion, ClusterSharding}
-import akka.persistence.PersistentActor
+import akka.persistence.{RecoveryCompleted, PersistentActor}
 import com.google.protobuf.ByteString
 import shardakka.ShardakkaExtension
 
@@ -53,6 +53,11 @@ final class ValueActor(name: String) extends PersistentActor with ActorLogging {
 
   context.setReceiveTimeout(ShardakkaExtension.CacheTTL)
 
+  override def preStart(): Unit = {
+    log.debug("Starting recovery")
+    super.preStart()
+  }
+
   override def persistenceId = ShardakkaExtension.KVPersistencePrefix + "_" + name + "_" + self.path.name
 
   private var value: Option[ByteString] = None
@@ -76,12 +81,16 @@ final class ValueActor(name: String) extends PersistentActor with ActorLogging {
       sender() ! GetResponse(value)
     case ReceiveTimeout ⇒
       log.debug("Stopping due to TTL end")
-      context stop self
+      if (ShardakkaExtension(context.system).isCluster)
+        context.parent ! ShardRegion.Passivate(stopMessage = PoisonPill)
+      else
+        context stop self
   }
 
   override def receiveRecover: Receive = {
     case ValueUpdated(newValue) ⇒ value = Some(newValue)
     case ValueDeleted()         ⇒ value = None
+    case RecoveryCompleted => log.debug("Recovery completed")
   }
 
   override protected def onRecoveryFailure(cause: Throwable, event: Option[Any]): Unit = {
