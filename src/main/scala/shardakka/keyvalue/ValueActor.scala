@@ -51,6 +51,8 @@ final class ValueActor(name: String) extends PersistentActor with ActorLogging {
   import ValueEvents._
   import ValueQueries._
 
+  private case object Stop
+
   context.setReceiveTimeout(ShardakkaExtension.CacheTTL)
 
   override def preStart(): Unit = {
@@ -82,9 +84,10 @@ final class ValueActor(name: String) extends PersistentActor with ActorLogging {
     case ReceiveTimeout ⇒
       log.debug("Stopping due to TTL end")
       if (ShardakkaExtension(context.system).isCluster)
-        context.parent ! ShardRegion.Passivate(stopMessage = PoisonPill)
+        context.parent ! ShardRegion.Passivate(stopMessage = Stop)
       else
         context stop self
+    case Stop => context stop self
   }
 
   override def receiveRecover: Receive = {
