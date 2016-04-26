@@ -14,7 +14,7 @@ organization := "im.actor"
 organizationName := "Actor LLC"
 organizationHomepage := Some(new URL("https://actor.im/"))
 
-val akkaV = "2.4.2-RC1"
+val akkaV = "2.4.4"
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
